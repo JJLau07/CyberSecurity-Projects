@@ -11,6 +11,7 @@ void exitsystem();
 void relaunchInPowerShell(int argc, char* argv[]);
 void setupConsoleWindow();
 void showStaticLoading(const std::string& message = "Processing", int dots = 6, int delayMs = 600);
+void getValidatedInput(int& input, int minimumValue, int maximumValue);
 // ---
 // ---
 void displayMainMenu(int& mainMenuOption);
@@ -78,25 +79,40 @@ void displayMainMenu(int& mainMenuOption)
               << "      6. Security Challenge\n"
               << "      7. Exit\n"
               << "\n\033[32m    Select option: \033[0m";
-    std::cin >> mainMenuOption;
+    getValidatedInput(mainMenuOption, 1, 7);
 }
 
 // ==================== Core Logics ====================
 
 // ==================== Utilities ====================
+void getValidatedInput(int& input, int minimumValue, int maximumValue)
+{
+    if (std::cin >> input)
+    {
+        if (input < minimumValue || input > maximumValue)
+        {
+            std::cin.clear();
+            input = -1;
+        }
+    }
+    else
+    {
+        std::cin.clear();
+        input = -1;
+    }
+    std::cin.ignore(10000, '\n');
+}
+
 void showStaticLoading(const std::string& message, int dots, int delayMs)
 {
     const std::string listMargin = "    ";
-
-    std::cout << "\n" << listMargin << "\033[36m" << message << "\033[0m";
+    std::cout << "\n" << listMargin << "⌛ \033[36m" << message << "\033[0m";
     std::cout.flush();
-
     for (int i = 0; i < dots; ++i)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(delayMs));
         std::cout << "\033[36m.\033[0m" << std::flush;
     }
-
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
     std::cout << "\n";
 }
@@ -133,7 +149,7 @@ void relaunchInPowerShell(int argc, char* argv[])
         HWND hwnd = GetConsoleWindow();
         if (hwnd != NULL) ShowWindow(hwnd, SW_HIDE);
         std::string exePath = argv[0];
-        std::string command = "conhost.exe powershell.exe -NoExit -NonInteractive -Command \"& '" + exePath + "' --in-ps\"";
+        std::string command = "conhost.exe powershell.exe -Command \"& '" + exePath + "' --in-ps\"";
         std::system(command.c_str());
         std::exit(0);
     }
@@ -142,19 +158,14 @@ void relaunchInPowerShell(int argc, char* argv[])
 void exitsystem()
 {
     system("cls");
-    std::cout << "\n\033[32m    Application Exited. Goodbye!\033[0m\n";
+    std::cout << "\n\033[32m    Application Exited Successfully. Goodbye!\033[0m \033[31m💖\033[0m\n";
     std::cout << " \n";
-    HANDLE hInput = GetStdHandle(STD_INPUT_HANDLE);
-    if (hInput != INVALID_HANDLE_VALUE)
-    {
-        DWORD mode;
-        GetConsoleMode(hInput, &mode);
-        SetConsoleMode(hInput, mode & ~(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT));
-    }
-    while (true) Sleep(10000);
+    std::this_thread::sleep_for(std::chrono::milliseconds(4000));
+    
 }
 
 void invalidInput()
 {
-    std::cout << "\n    Invalid Input. Try Again.\n";
+    std::cout << "\n\033[31m    Invalid Input. Try Again.\033[0m\n";
+    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 }
