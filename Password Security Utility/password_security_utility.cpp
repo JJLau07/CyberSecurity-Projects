@@ -2,8 +2,12 @@
 #include <string>
 #include <cstdlib>
 #include <windows.h>
+#include <mmsystem.h>
 #include <thread>
 #include <chrono>
+#ifdef _MSC_VER
+#pragma comment(lib, "winmm.lib")
+#endif
 
 // ==================== Declarations ====================
 void invalidInput();
@@ -12,6 +16,7 @@ void relaunchInPowerShell(int argc, char* argv[]);
 void setupConsoleWindow();
 void showStaticLoading(const std::string& message = "Processing", int dots = 6, int delayMs = 600);
 void getValidatedInput(int& input, int minimumValue, int maximumValue);
+void playSoundEffect(const std::string& soundFile);
 // ---
 // ---
 void displayMainMenu(int& mainMenuOption);
@@ -21,9 +26,9 @@ int main(int argc, char* argv[])
 {   
     relaunchInPowerShell(argc, argv);
     setupConsoleWindow();
+    playSoundEffect("assets/welcome.wav");
     int mainMenuOption{};
     bool runLoop = true;
-
     do
     {
         displayMainMenu(mainMenuOption);
@@ -85,6 +90,12 @@ void displayMainMenu(int& mainMenuOption)
 // ==================== Core Logics ====================
 
 // ==================== Utilities ====================
+void playSoundEffect(const std::string& soundFile)
+{
+    // SND_FILENAME: path points to a file | SND_ASYNC: plays in background
+    PlaySoundA(soundFile.c_str(), NULL, SND_FILENAME | SND_ASYNC);
+}
+
 void getValidatedInput(int& input, int minimumValue, int maximumValue)
 {
     if (std::cin >> input)
@@ -158,14 +169,15 @@ void relaunchInPowerShell(int argc, char* argv[])
 void exitsystem()
 {
     system("cls");
+    playSoundEffect("assets/thank_you.wav");
     std::cout << "\n\033[32m    Application Exited Successfully. Goodbye!\033[0m \033[31m💖\033[0m\n";
     std::cout << " \n";
     std::this_thread::sleep_for(std::chrono::milliseconds(4000));
-    
 }
 
 void invalidInput()
 {
+    MessageBeep(MB_ICONWARNING);
     std::cout << "\n\033[31m    Invalid Input. Try Again.\033[0m\n";
     std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 }
