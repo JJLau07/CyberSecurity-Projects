@@ -2,12 +2,15 @@
 #include <string>
 #include <cstdlib>
 #include <windows.h>
+#include <thread>
+#include <chrono>
 
 // ==================== Declarations ====================
 void invalidInput();
 void exitsystem();
 void relaunchInPowerShell(int argc, char* argv[]);
 void setupConsoleWindow();
+void showStaticLoading(const std::string& message = "Processing", int dots = 6, int delayMs = 600);
 // ---
 // ---
 void displayMainMenu(int& mainMenuOption);
@@ -49,6 +52,7 @@ int main(int argc, char* argv[])
         }
         else if (mainMenuOption == 7)
         {
+            showStaticLoading("Exiting System");
             exitsystem();
             return 0;
         }
@@ -80,6 +84,23 @@ void displayMainMenu(int& mainMenuOption)
 // ==================== Core Logics ====================
 
 // ==================== Utilities ====================
+void showStaticLoading(const std::string& message, int dots, int delayMs)
+{
+    const std::string listMargin = "    ";
+
+    std::cout << "\n" << listMargin << "\033[36m" << message << "\033[0m";
+    std::cout.flush();
+
+    for (int i = 0; i < dots; ++i)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(delayMs));
+        std::cout << "\033[36m.\033[0m" << std::flush;
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    std::cout << "\n";
+}
+
 void setupConsoleWindow()
 {
     SetConsoleOutputCP(CP_UTF8);
@@ -112,7 +133,7 @@ void relaunchInPowerShell(int argc, char* argv[])
         HWND hwnd = GetConsoleWindow();
         if (hwnd != NULL) ShowWindow(hwnd, SW_HIDE);
         std::string exePath = argv[0];
-        std::string command = "conhost.exe powershell.exe -NoExit -Command \"& '" + exePath + "' --in-ps\"";
+        std::string command = "conhost.exe powershell.exe -NoExit -NonInteractive -Command \"& '" + exePath + "' --in-ps\"";
         std::system(command.c_str());
         std::exit(0);
     }
@@ -120,10 +141,20 @@ void relaunchInPowerShell(int argc, char* argv[])
 
 void exitsystem()
 {
-    std::cout << "\nApplication Exited Successfuly.\n";
+    system("cls");
+    std::cout << "\n\033[32m    Application Exited. Goodbye!\033[0m\n";
+    std::cout << " \n";
+    HANDLE hInput = GetStdHandle(STD_INPUT_HANDLE);
+    if (hInput != INVALID_HANDLE_VALUE)
+    {
+        DWORD mode;
+        GetConsoleMode(hInput, &mode);
+        SetConsoleMode(hInput, mode & ~(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT));
+    }
+    while (true) Sleep(10000);
 }
 
 void invalidInput()
 {
-    std::cout << "\nInvalid Input. Try Again.\n";
+    std::cout << "\n    Invalid Input. Try Again.\n";
 }
