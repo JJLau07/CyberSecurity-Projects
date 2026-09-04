@@ -5,6 +5,7 @@
 #include <mmsystem.h>
 #include <thread>
 #include <chrono>
+#include <ctime>
 #ifdef _MSC_VER
 #pragma comment(lib, "winmm.lib")
 #endif
@@ -17,64 +18,39 @@ void setupConsoleWindow();
 void showStaticLoading(const std::string& message = "Processing", int dots = 6, int delayMs = 600);
 void getValidatedInput(int& input, int minimumValue, int maximumValue);
 void playSoundEffect(const std::string& soundFile);
+void pauseScreen(const std::string& message = "Press Enter to return to the Main Menu");
 // ---
+std::string generatePassword(int passLength);
+bool genPassValidation(const std::string& password, int passLength);
 // ---
-void displayMainMenu(int& mainMenuOption);
+void showGenPassUI(int& passLength);
+void runGenPassFeat(int& passLength);
+bool handleMainMenu(int& mainMenuOption, int& passLength);
+void showMainMenuUI(int& mainMenuOption);
 
 // ==================== Controllers ====================
 int main(int argc, char* argv[])
 {   
     relaunchInPowerShell(argc, argv);
     setupConsoleWindow();
-    playSoundEffect("assets/welcome.wav");
+    // playSoundEffect("assets/welcome.wav");
     int mainMenuOption{};
+    int passLength{};
     bool runLoop = true;
+    std::srand(std::time(nullptr));
     do
     {
-        displayMainMenu(mainMenuOption);
-        if (mainMenuOption == 1)
-        {
-
-        }
-        else if (mainMenuOption == 2)
-        {
-
-        }
-        else if (mainMenuOption == 3)
-        {
-
-        }
-        else if (mainMenuOption == 4)
-        {
-
-        }
-        else if (mainMenuOption == 5)
-        {
-
-        }
-        else if (mainMenuOption == 6)
-        {
-
-        }
-        else if (mainMenuOption == 7)
-        {
-            showStaticLoading("Exiting System");
-            exitsystem();
-            return 0;
-        }
-        else
-        {
-            invalidInput();
-        }
+        showMainMenuUI(mainMenuOption);
+        runLoop = handleMainMenu(mainMenuOption, passLength);
     } while (runLoop);
     return 0;
 }
 
-void displayMainMenu(int& mainMenuOption)
+void showMainMenuUI(int& mainMenuOption)
 {
     system("cls");
     std::cout << "\n\033[34m  =====================================\033[0m\n"
-              << "\033[33m" << "     🛡️ PASSWORD SECURITY UTILITY 🔒  \n" << "\033[0m"
+              << "\033[33m     🛡️ PASSWORD SECURITY UTILITY 🔒  \033[0m\n"
               << "\033[34m  =====================================\033[0m\n"
               << "\n      1. Generate Password\n"
               << "      2. Check Password Strength\n"
@@ -87,9 +63,120 @@ void displayMainMenu(int& mainMenuOption)
     getValidatedInput(mainMenuOption, 1, 7);
 }
 
+bool handleMainMenu(int& mainMenuOption, int& passLength)
+{
+    if (mainMenuOption == 1)
+    {
+        runGenPassFeat(passLength);
+        return true;
+    }
+    else if (mainMenuOption == 2)
+    {
+        return true;
+    }
+    else if (mainMenuOption == 3)
+    {
+        return true;
+    }
+    else if (mainMenuOption == 4)
+    {
+        return true;
+    }
+    else if (mainMenuOption == 5)
+    {
+        return true;
+    }
+    else if (mainMenuOption == 6)
+    {
+        return true;
+    }
+    else if (mainMenuOption == 7)
+    {
+        showStaticLoading("Exiting System ");
+        exitsystem();
+        return false;
+    }
+    else
+    {
+        invalidInput();
+        return true;
+    }
+}
+
+void runGenPassFeat(int& passLength)
+{
+
+    while (true)
+    {
+    showGenPassUI(passLength);
+    if (passLength == -1)
+    {
+        invalidInput();
+        continue;
+    }
+    showStaticLoading("Generating Password ");
+    std::string password = generatePassword(passLength);
+    std::cout << "\033[2A\033[2K\n\033[2K\033[A" << std::flush;
+    bool isValid = genPassValidation(password, passLength);
+    if (!isValid)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+        continue;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+    pauseScreen();
+    break;
+    }
+}
+
+void showGenPassUI(int& passLength)
+{
+    system("cls");
+    std::cout << "\n\033[33m  ============ 🔑 PASSWORD GENERATOR ⚙️ ============\033[0m\n"
+              << "\n      Enter desired password length: ";
+    getValidatedInput(passLength, 1,99);
+}
+
 // ==================== Core Logics ====================
+bool genPassValidation(const std::string& password, int passLength)
+{
+    if (!password.empty() && static_cast<int>(password.length()) == passLength)
+    {
+        std::cout << "\n\033[32m      Password generated successfully.🎉\033[0m\n";
+        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+        std::cout << "\n      Generated Password: " << password << '\n';
+        return true;
+    }
+    else
+    {
+        std::cout << "\n\033[33m     ⚠️ \033[0m\033[31mFailed to generate password. Please try again\033[0m\n";
+        return false;
+    }
+}
+std::string generatePassword(int passLength)
+{
+    std::string characters =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz"
+        "0123456789"
+        "!@#$%^&*";
+    std::string generatedPassword;
+    for (int i = 0; i < passLength; i++)
+    {
+        int randomIndex = std::rand() % characters.length();
+        generatedPassword += characters[randomIndex];
+    }
+    return generatedPassword;
+}
 
 // ==================== Utilities ====================
+void pauseScreen(const std::string& message)
+{
+    std::cout << "\n    " << message;
+    std::cin.clear();
+    std::cin.get();
+}
+
 void playSoundEffect(const std::string& soundFile)
 {
     // SND_FILENAME: path points to a file | SND_ASYNC: plays in background
