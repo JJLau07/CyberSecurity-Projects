@@ -219,7 +219,7 @@ void setupConsoleWindow()
 {
     SetConsoleOutputCP(CP_UTF8);
     SetConsoleCP(CP_UTF8);
-    SetConsoleTitleA("Password Security v1.0");
+    SetConsoleTitleA("Password Security v0.1.0");
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     if (hOut != INVALID_HANDLE_VALUE)
     {
