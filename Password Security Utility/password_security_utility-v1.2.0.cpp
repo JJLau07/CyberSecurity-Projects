@@ -22,10 +22,18 @@ void pauseScreen(const std::string& message = "Press Enter to return to the Main
 // ---
 std::string generatePassword(int passLength);
 bool genPassValidation(const std::string& password, int passLength);
+void getStrengthClassification(std::string& strengthClass, bool hasMinLength, bool hasUpper, bool hasLower, bool hasDigit, bool hasSpecial);
+void checkPassEvaluation(const std::string& passToCheck, bool& hasMinLength, 
+                         bool& hasUpper, bool& hasLower, bool& hasDigit, bool& hasSpecial);
+bool checkPasswordValidation(const std::string& passToCheck);
 // ---
+void showCheckPassResult(const std::string& strengthClass, bool hasMinLength, 
+                         bool hasUpper, bool hasLower, bool hasDigit, bool hasSpecial);
+void showCheckPassStrengthUI(std::string& passToCheck);
+bool runCheckPassStrength(std::string& passToCheck);
 void showGenPassUI(int& passLength);
 void runGenPassFeat(int& passLength);
-bool handleMainMenu(int& mainMenuOption, int& passLength);
+bool handleMainMenu(int& mainMenuOption, int& passLength, std::string& passToCheck);
 void showMainMenuUI(int& mainMenuOption);
 
 // ==================== Controllers ====================
@@ -38,10 +46,11 @@ int main(int argc, char* argv[])
     int passLength{};
     bool runLoop = true;
     std::srand(std::time(nullptr));
+    std::string passToCheck{};
     do
     {
         showMainMenuUI(mainMenuOption);
-        runLoop = handleMainMenu(mainMenuOption, passLength);
+        runLoop = handleMainMenu(mainMenuOption, passLength, passToCheck);
     } while (runLoop);
     return 0;
 }
@@ -63,7 +72,7 @@ void showMainMenuUI(int& mainMenuOption)
     getValidatedInput(mainMenuOption, 1, 7);
 }
 
-bool handleMainMenu(int& mainMenuOption, int& passLength)
+bool handleMainMenu(int& mainMenuOption, int& passLength, std::string& passToCheck)
 {
     if (mainMenuOption == 1)
     {
@@ -72,6 +81,7 @@ bool handleMainMenu(int& mainMenuOption, int& passLength)
     }
     else if (mainMenuOption == 2)
     {
+        runCheckPassStrength(passToCheck);
         return true;
     }
     else if (mainMenuOption == 3)
@@ -108,36 +118,139 @@ void runGenPassFeat(int& passLength)
 
     while (true)
     {
-    showGenPassUI(passLength);
-    if (passLength == -1)
-    {
-        invalidInput();
-        continue;
-    }
-    showStaticLoading("Generating Password ");
-    std::string password = generatePassword(passLength);
-    std::cout << "\033[2A\033[2K\n\033[2K\033[A" << std::flush;
-    bool isValid = genPassValidation(password, passLength);
-    if (!isValid)
-    {
-        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-        continue;
-    }
-    std::this_thread::sleep_for(std::chrono::milliseconds(3000));
-    pauseScreen();
-    break;
+        showGenPassUI(passLength);
+        if (passLength == -1)
+        {
+            invalidInput();
+            continue;
+        }
+        showStaticLoading("Generating Password ");
+        std::string password = generatePassword(passLength);
+        std::cout << "\033[2A\033[2K\n\033[2K\033[A" << std::flush;
+        bool isValid = genPassValidation(password, passLength);
+        if (!isValid)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+            continue;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+        pauseScreen();
+        break;
     }
 }
 
 void showGenPassUI(int& passLength)
 {
     system("cls");
-    std::cout << "\n\033[33m  ============ 🔑 PASSWORD GENERATOR ⚙️ ============\033[0m\n"
+    std::cout << "\n\033[33m  ============== 🔑 PASSWORD GENERATOR ⚙️ ==============\033[0m\n"
               << "\n      Enter desired password length: ";
     getValidatedInput(passLength, 1,99);
 }
 
+bool runCheckPassStrength(std::string& passToCheck)
+{
+    while (true)
+    {
+        showCheckPassStrengthUI(passToCheck);
+        if (passToCheck.empty())
+        {
+            invalidInput();
+            continue;
+        }
+        showStaticLoading("Checking Your Password's Strength ");
+        std::cout << "\033[2A\033[2K\n\033[2K\033[A" << std::flush;
+        checkPasswordValidation(passToCheck);
+        pauseScreen();
+        return true;
+    }
+}
+
+void showCheckPassStrengthUI(std::string& passToCheck)
+{
+    system("cls");
+    std::cout << "\n\033[33m  ======== 🔑 CHECK PASSWORD STRENGTH ⚙️ ========\033[0m\n"
+              << "\n    Enter password to check strength: ";
+    std::getline(std::cin >> std::ws, passToCheck);
+}
+
+void showCheckPassResult(const std::string& strengthClass, bool hasMinLength, 
+                         bool hasUpper, bool hasLower, bool hasDigit, bool hasSpecial)
+{
+    std::string minLenMark = hasMinLength ? "\033[32m✔\033[0m" : "\033[31m✖\033[0m";
+    std::string upperMark  = hasUpper     ? "\033[32m✔\033[0m" : "\033[31m✖\033[0m";
+    std::string lowerMark  = hasLower     ? "\033[32m✔\033[0m" : "\033[31m✖\033[0m";
+    std::string digitMark  = hasDigit     ? "\033[32m✔\033[0m" : "\033[31m✖\033[0m";
+    std::string specMark   = hasSpecial   ? "\033[32m✔\033[0m" : "\033[31m✖\033[0m";
+
+    std::cout << "\n      Password Analysis: \n"
+              << "      " << minLenMark << "  Length Requirement\n"
+              << "      " << upperMark  << "  Uppercase Letter\n"
+              << "      " << lowerMark  << "  Lowercase Letter\n"
+              << "      " << digitMark  << "  Number\n"
+              << "      " << specMark   << "  Special Character\n"
+              << "\n      Password Strength: " << strengthClass << '\n';
+}
+
 // ==================== Core Logics ====================
+bool checkPasswordValidation(const std::string& passToCheck)
+{
+    if (passToCheck.empty())
+    {
+        std::cout << "\n\033[33m     ⚠️ \033[0m\033[31mFailed to analyze password. Please try again\033[0m\n";
+        return false;
+    }
+    else 
+    {
+        std::cout << "\n\033[32m      Password analyzed successfully.🎉\033[0m\n";
+        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+        bool hasMinLength = false;
+        bool hasUpper = false;
+        bool hasLower = false;
+        bool hasDigit = false;
+        bool hasSpecial = false;
+        checkPassEvaluation(passToCheck, hasMinLength, hasUpper, hasLower, hasDigit, hasSpecial);
+        std::string strengthClass;
+        getStrengthClassification(strengthClass, hasMinLength, hasUpper, hasLower, hasDigit, hasSpecial);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+        showCheckPassResult(strengthClass, hasMinLength, hasUpper, hasLower, hasDigit, hasSpecial);
+        return true;
+    }
+}
+
+void checkPassEvaluation(const std::string& passToCheck, bool& hasMinLength, 
+                         bool& hasUpper, bool& hasLower, bool& hasDigit, bool& hasSpecial)
+{
+    hasMinLength = (passToCheck.length() >= 8);
+    hasUpper = false;
+    hasLower = false;
+    hasDigit = false;
+    hasSpecial = false;
+
+    for (char ch : passToCheck)
+    {
+        if (ch >= 'A' && ch <= 'Z') hasUpper = true;
+        else if (ch >= 'a' && ch <= 'z') hasLower = true;
+        else if (ch >= '0' && ch <= '9') hasDigit = true;
+        else hasSpecial = true;
+    }
+}
+
+void getStrengthClassification(std::string& strengthClass, bool hasMinLength, bool hasUpper, bool hasLower, bool hasDigit, bool hasSpecial)
+{
+    int score = 0;
+    if (hasMinLength) score++;
+    if (hasUpper)     score++;
+    if (hasLower)     score++;
+    if (hasDigit)     score++;
+    if (hasSpecial)   score++;
+
+    if (score == 5) strengthClass = "\033[1;32mVery Strong\033[0m";
+    else if (score == 4) strengthClass = "\033[1;32mStrong\033[0m";
+    else if (score == 3) strengthClass = "\033[1;33mModerate\033[0m";
+    else if (score == 2) strengthClass = "\033[1;31mWeak\033[0m";
+    else strengthClass = "\033[1;31mVery Weak\033[0m";
+}
+
 bool genPassValidation(const std::string& password, int passLength)
 {
     if (!password.empty() && static_cast<int>(password.length()) == passLength)
@@ -161,7 +274,7 @@ std::string generatePassword(int passLength)
         "0123456789"
         "!@#$%^&*";
     std::string generatedPassword;
-    for (int i = 0; i < passLength; i++)
+    for (size_t i = 0; i < static_cast<size_t>(passLength); i++)
     {
         int randomIndex = std::rand() % characters.length();
         generatedPassword += characters[randomIndex];
@@ -173,7 +286,6 @@ std::string generatePassword(int passLength)
 void pauseScreen(const std::string& message)
 {
     std::cout << "\n    " << message;
-    std::cin.clear();
     std::cin.get();
 }
 
@@ -185,6 +297,7 @@ void playSoundEffect(const std::string& soundFile)
 
 void getValidatedInput(int& input, int minimumValue, int maximumValue)
 {
+    std::cin.clear();
     if (std::cin >> input)
     {
         if (input < minimumValue || input > maximumValue)
@@ -223,6 +336,11 @@ void setupConsoleWindow()
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     if (hOut != INVALID_HANDLE_VALUE)
     {
+        DWORD dwMode = 0;
+        if (GetConsoleMode(hOut, &dwMode))
+        {
+            SetConsoleMode(hOut, dwMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+        }
         CONSOLE_FONT_INFOEX cfi;
         cfi.cbSize = sizeof(CONSOLE_FONT_INFOEX);
         GetCurrentConsoleFontEx(hOut, FALSE, &cfi);
