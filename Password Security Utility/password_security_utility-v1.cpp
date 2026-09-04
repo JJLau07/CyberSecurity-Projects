@@ -11,6 +11,7 @@
 #endif
 
 // ==================== Declarations ====================
+// ----- Utilities -----
 void invalidInput();
 void exitsystem();
 void relaunchInPowerShell(int argc, char* argv[]);
@@ -19,24 +20,36 @@ void showStaticLoading(const std::string& message = "Processing", int dots = 6, 
 void getValidatedInput(int& input, int minimumValue, int maximumValue);
 void playSoundEffect(const std::string& soundFile);
 void pauseScreen(const std::string& message = "Press Enter to return to the Main Menu");
-// ---
-std::string generatePassword(int passLength);
-bool genPassValidation(const std::string& password, int passLength);
-void getStrengthClassification(std::string& strengthClass, bool hasMinLength, bool hasUpper, bool hasLower, bool hasDigit, bool hasSpecial);
-void checkPassEvaluation(const std::string& passToCheck, bool& hasMinLength, 
-                         bool& hasUpper, bool& hasLower, bool& hasDigit, bool& hasSpecial);
-bool checkPasswordValidation(const std::string& passToCheck);
-// ---
-void showCheckPassResult(const std::string& strengthClass, bool hasMinLength, 
-                         bool hasUpper, bool hasLower, bool hasDigit, bool hasSpecial);
-void showCheckPassStrengthUI(std::string& passToCheck);
-bool runCheckPassStrength(std::string& passToCheck);
+// ----- Main Menu -----
+void showMainMenuUI(int& mainMenuOption);
+bool handleMainMenu(int& mainMenuOption, int& passLength, std::string& passToCheck, std::string& passCheckPolicy);
+void showMainMenuUI(int& mainMenuOption);
+// ----- Generate Password -----
 void showGenPassUI(int& passLength);
 void runGenPassFeat(int& passLength);
-bool handleMainMenu(int& mainMenuOption, int& passLength, std::string& passToCheck);
-void showMainMenuUI(int& mainMenuOption);
+std::string generatePassword(int passLength);
+bool genPassValidation(const std::string& password, int passLength);
+// ----- Check Password Strength
+void showCheckPassStrengthUI(std::string& passToCheck);
+bool runCheckPassStrength(std::string& passToCheck);
+void showCheckPassResult(const std::string& strengthClass, bool hasMinLength, 
+                         bool hasUpper, bool hasLower, bool hasDigit, bool hasSpecial);
+bool checkPasswordValidation(const std::string& passToCheck);
+void checkPassEvaluation(const std::string& passToCheck, bool& hasMinLength, 
+                         bool& hasUpper, bool& hasLower, bool& hasDigit, bool& hasSpecial);
+void getStrengthClassification(std::string& strengthClass, bool hasMinLength, bool hasUpper, bool hasLower, bool hasDigit, bool hasSpecial);
+// ----- Check Password Policy -----
+void showCheckPassPolicyUI(std::string& passCheckPolicy);
+void showPassPolicyResultUI(const std::string& PolicyClass, bool hasMinLength, 
+                         bool hasUpper, bool hasLower, bool hasDigit, bool hasSpecial);
+bool runCheckPassPolicy(std::string& passCheckPolicy);
+bool checkPassPolicyValidation(const std::string& passCheckPolicy);
+void PassPolicyEvaluation(const std::string& passCheckPolicy, bool& hasMinLength, 
+                         bool& hasUpper, bool& hasLower, bool& hasDigit, bool& hasSpecial);
+void getPolicyClassification(std::string& PolicyClass, bool hasMinLength, bool hasUpper, bool hasLower, bool hasDigit, bool hasSpecial);
 
-// ==================== Controllers ====================
+
+// ==================== MAIN MENU ====================
 int main(int argc, char* argv[])
 {   
     relaunchInPowerShell(argc, argv);
@@ -47,10 +60,11 @@ int main(int argc, char* argv[])
     bool runLoop = true;
     std::srand(std::time(nullptr));
     std::string passToCheck{};
+    std::string passCheckPolicy{};
     do
     {
         showMainMenuUI(mainMenuOption);
-        runLoop = handleMainMenu(mainMenuOption, passLength, passToCheck);
+        runLoop = handleMainMenu(mainMenuOption, passLength, passToCheck, passCheckPolicy);
     } while (runLoop);
     return 0;
 }
@@ -72,7 +86,7 @@ void showMainMenuUI(int& mainMenuOption)
     getValidatedInput(mainMenuOption, 1, 7);
 }
 
-bool handleMainMenu(int& mainMenuOption, int& passLength, std::string& passToCheck)
+bool handleMainMenu(int& mainMenuOption, int& passLength, std::string& passToCheck, std::string& passCheckPolicy)
 {
     if (mainMenuOption == 1)
     {
@@ -86,6 +100,7 @@ bool handleMainMenu(int& mainMenuOption, int& passLength, std::string& passToChe
     }
     else if (mainMenuOption == 3)
     {
+        runCheckPassPolicy(passCheckPolicy);
         return true;
     }
     else if (mainMenuOption == 4)
@@ -113,6 +128,15 @@ bool handleMainMenu(int& mainMenuOption, int& passLength, std::string& passToChe
     }
 }
 
+// ==================== GENERATE PASSWORD ====================
+void showGenPassUI(int& passLength)
+{
+    system("cls");
+    std::cout << "\n\033[33m  ============== 🔑 PASSWORD GENERATOR ⚙️ ==============\033[0m\n"
+              << "\n      Enter desired password length: ";
+    getValidatedInput(passLength, 1,99);
+}
+
 void runGenPassFeat(int& passLength)
 {
 
@@ -133,18 +157,51 @@ void runGenPassFeat(int& passLength)
             std::this_thread::sleep_for(std::chrono::milliseconds(2000));
             continue;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
         pauseScreen();
         break;
     }
 }
 
-void showGenPassUI(int& passLength)
+bool genPassValidation(const std::string& password, int passLength)
+{
+    if (!password.empty() && static_cast<int>(password.length()) == passLength)
+    {
+        std::cout << "\n\033[32m      Password generated successfully.🎉\033[0m\n";
+        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+        std::cout << "\033[2A\033[2K\n\033[2K\033[A" << std::flush;
+        std::cout << "\n      Generated Password: " << password << '\n';
+        return true;
+    }
+    else
+    {
+        std::cout << "\n\033[33m     ⚠️ \033[0m\033[31mFailed to generate password. Please try again\033[0m\n";
+        return false;
+    }
+}
+
+std::string generatePassword(int passLength)
+{
+    std::string characters =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz"
+        "0123456789"
+        "!@#$%^&*";
+    std::string generatedPassword;
+    for (size_t i = 0; i < static_cast<size_t>(passLength); i++)
+    {
+        int randomIndex = std::rand() % characters.length();
+        generatedPassword += characters[randomIndex];
+    }
+    return generatedPassword;
+}
+
+// ==================== CHECK PASSWORD STRENGTH ====================
+void showCheckPassStrengthUI(std::string& passToCheck)
 {
     system("cls");
-    std::cout << "\n\033[33m  ============== 🔑 PASSWORD GENERATOR ⚙️ ==============\033[0m\n"
-              << "\n      Enter desired password length: ";
-    getValidatedInput(passLength, 1,99);
+    std::cout << "\n\033[33m  ======== 💪 CHECK PASSWORD STRENGTH 🛡️ ========\033[0m\n"
+              << "\n   Enter password to check strength: ";
+    std::getline(std::cin >> std::ws, passToCheck);
 }
 
 bool runCheckPassStrength(std::string& passToCheck)
@@ -165,14 +222,6 @@ bool runCheckPassStrength(std::string& passToCheck)
     }
 }
 
-void showCheckPassStrengthUI(std::string& passToCheck)
-{
-    system("cls");
-    std::cout << "\n\033[33m  ======== 🔑 CHECK PASSWORD STRENGTH ⚙️ ========\033[0m\n"
-              << "\n    Enter password to check strength: ";
-    std::getline(std::cin >> std::ws, passToCheck);
-}
-
 void showCheckPassResult(const std::string& strengthClass, bool hasMinLength, 
                          bool hasUpper, bool hasLower, bool hasDigit, bool hasSpecial)
 {
@@ -191,7 +240,6 @@ void showCheckPassResult(const std::string& strengthClass, bool hasMinLength,
               << "\n      Password Strength: " << strengthClass << '\n';
 }
 
-// ==================== Core Logics ====================
 bool checkPasswordValidation(const std::string& passToCheck)
 {
     if (passToCheck.empty())
@@ -203,6 +251,7 @@ bool checkPasswordValidation(const std::string& passToCheck)
     {
         std::cout << "\n\033[32m      Password analyzed successfully.🎉\033[0m\n";
         std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+        std::cout << "\033[2A\033[2K\n\033[2K\033[A" << std::flush;
         bool hasMinLength = false;
         bool hasUpper = false;
         bool hasLower = false;
@@ -211,7 +260,7 @@ bool checkPasswordValidation(const std::string& passToCheck)
         checkPassEvaluation(passToCheck, hasMinLength, hasUpper, hasLower, hasDigit, hasSpecial);
         std::string strengthClass;
         getStrengthClassification(strengthClass, hasMinLength, hasUpper, hasLower, hasDigit, hasSpecial);
-        std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+        // std::this_thread::sleep_for(std::chrono::milliseconds(1500));
         showCheckPassResult(strengthClass, hasMinLength, hasUpper, hasLower, hasDigit, hasSpecial);
         return true;
     }
@@ -251,35 +300,120 @@ void getStrengthClassification(std::string& strengthClass, bool hasMinLength, bo
     else strengthClass = "\033[1;31mVery Weak\033[0m";
 }
 
-bool genPassValidation(const std::string& password, int passLength)
+// ==================== CHECK PASSWORD POLICY ====================
+void showCheckPassPolicyUI(std::string& passCheckPolicy)
 {
-    if (!password.empty() && static_cast<int>(password.length()) == passLength)
+    system("cls");
+    std::cout << "\n\033[33m  ======== ⚖️ CHECK PASSWORD POLICY 📜 ========\033[0m\n"
+              << "\n  Enter password to check policy: ";
+    std::getline(std::cin >> std::ws, passCheckPolicy);
+}
+
+void showPassPolicyResultUI(const std::string& PolicyClass, bool hasMinLength, 
+                         bool hasUpper, bool hasLower, bool hasDigit, bool hasSpecial)
+{
+    std::string minLenMark = hasMinLength ? "\033[32m✔\033[0m" : "\033[31m✖\033[0m";
+    std::string upperMark  = hasUpper     ? "\033[32m✔\033[0m" : "\033[31m✖\033[0m";
+    std::string lowerMark  = hasLower     ? "\033[32m✔\033[0m" : "\033[31m✖\033[0m";
+    std::string digitMark  = hasDigit     ? "\033[32m✔\033[0m" : "\033[31m✖\033[0m";
+    std::string specMark   = hasSpecial   ? "\033[32m✔\033[0m" : "\033[31m✖\033[0m";
+
+    std::cout << "\n      Password Policy Analysis: \n"
+              << "      " << minLenMark << "  Minimum Length: 8 characters\n"
+              << "      " << upperMark  << "  Uppercase Letter\n"
+              << "      " << lowerMark  << "  Lowercase Letter\n"
+              << "      " << digitMark  << "  Number\n"
+              << "      " << specMark   << "  Special Character\n"
+              << " \n"
+              << "      ────────────────────────────\n"
+              << "        Policy Status: " << PolicyClass << '\n'
+              << "      ────────────────────────────\n";
+}
+
+bool runCheckPassPolicy(std::string& passCheckPolicy)
+{
+    while (true)
     {
-        std::cout << "\n\033[32m      Password generated successfully.🎉\033[0m\n";
-        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-        std::cout << "\n      Generated Password: " << password << '\n';
+        showCheckPassPolicyUI(passCheckPolicy);
+        if (passCheckPolicy.empty())
+        {
+            invalidInput();
+            continue;
+        }
+        showStaticLoading("Checking Password Policy ");
+        std::cout << "\033[2A\033[2K\n\033[2K\033[A" << std::flush;
+        checkPassPolicyValidation(passCheckPolicy);
+        pauseScreen();
         return true;
     }
-    else
+}
+
+bool checkPassPolicyValidation(const std::string& passCheckPolicy)
+{
+    if (passCheckPolicy.empty())
     {
-        std::cout << "\n\033[33m     ⚠️ \033[0m\033[31mFailed to generate password. Please try again\033[0m\n";
+        std::cout << "\n\033[33m     ⚠️ \033[0m\033[31mFailed to analyze password. Please try again\033[0m\n";
         return false;
     }
-}
-std::string generatePassword(int passLength)
-{
-    std::string characters =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        "abcdefghijklmnopqrstuvwxyz"
-        "0123456789"
-        "!@#$%^&*";
-    std::string generatedPassword;
-    for (size_t i = 0; i < static_cast<size_t>(passLength); i++)
+    else 
     {
-        int randomIndex = std::rand() % characters.length();
-        generatedPassword += characters[randomIndex];
+        std::cout << "\n\033[32m      Password analyzed successfully.🎉\033[0m\n";
+        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+        bool hasMinLength = false;
+        bool hasUpper = false;
+        bool hasLower = false;
+        bool hasDigit = false;
+        bool hasSpecial = false;
+        PassPolicyEvaluation(passCheckPolicy, hasMinLength, hasUpper, hasLower, hasDigit, hasSpecial);
+        std::string PolicyClass;
+        getPolicyClassification(PolicyClass, hasMinLength, hasUpper, hasLower, hasDigit, hasSpecial);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+        std::cout << "\033[2A\033[2K\n\033[2K\033[A" << std::flush;
+        showPassPolicyResultUI(PolicyClass, hasMinLength, hasUpper, hasLower, hasDigit, hasSpecial);
+        if (PolicyClass == "\033[31m✖  FAILED\033[0m")
+        {
+            std::cout << "\n\033[33m    ⚠️\033[0m \033[31mSECURITY WARNING\033[0m\n"
+                      << "  Your password does not meet the required security policies.\n"
+                      << "  Please change your password to improve account security.\n";
+        }
+        if (PolicyClass == "\033[32m✔  PASSED\033[0m")
+        {
+            std::cout << "\n  Your password meets all required security policies.\n"
+                      << "  No changes are required at this time.\n";
+        }
+        return true;
     }
-    return generatedPassword;
+}
+
+void PassPolicyEvaluation(const std::string& passCheckPolicy, bool& hasMinLength, 
+                         bool& hasUpper, bool& hasLower, bool& hasDigit, bool& hasSpecial)
+{
+    hasMinLength = (passCheckPolicy.length() >= 8);
+    hasUpper = false;
+    hasLower = false;
+    hasDigit = false;
+    hasSpecial = false;
+
+    for (char ch : passCheckPolicy)
+    {
+        if (ch >= 'A' && ch <= 'Z') hasUpper = true;
+        else if (ch >= 'a' && ch <= 'z') hasLower = true;
+        else if (ch >= '0' && ch <= '9') hasDigit = true;
+        else hasSpecial = true;
+    }
+}
+
+void getPolicyClassification(std::string& PolicyClass, bool hasMinLength, bool hasUpper, bool hasLower, bool hasDigit, bool hasSpecial)
+{
+    int score = 0;
+    if (hasMinLength) score++;
+    if (hasUpper)     score++;
+    if (hasLower)     score++;
+    if (hasDigit)     score++;
+    if (hasSpecial)   score++;
+
+    if (score == 5) PolicyClass = "\033[32m✔  PASSED\033[0m";
+    else PolicyClass = "\033[31m✖  FAILED\033[0m";
 }
 
 // ==================== Utilities ====================
@@ -350,9 +484,9 @@ void setupConsoleWindow()
         SetCurrentConsoleFontEx(hOut, FALSE, &cfi);
         SMALL_RECT tinyRect = { 0, 0, 1, 1 };
         SetConsoleWindowInfo(hOut, TRUE, &tinyRect);
-        COORD bufferSize = { 60, 20 };
+        COORD bufferSize = { 63, 23 };
         SetConsoleScreenBufferSize(hOut, bufferSize);
-        SMALL_RECT windowSize = { 0, 0, 59, 19 };
+        SMALL_RECT windowSize = { 0, 0, 62, 22 };
         SetConsoleWindowInfo(hOut, TRUE, &windowSize);
     }
     system("cls");
